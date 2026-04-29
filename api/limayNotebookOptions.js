@@ -2,23 +2,22 @@
 
 export const notebookFormOptions = [
   {
+    id: "text",
+    title: "Add Your Text",
+    type: "text",
+    required: true,
+    placeholder: "Enter your text (e.g. Sam)",
+  },
+
+  {
     id: "notebookType",
     title: "Choose Your Notebook Style",
     type: "select",
     required: true,
     options: [
-      {
-        label: "Lined (Everyday writing)",
-        value: "lined",
-      },
-      {
-        label: "Blank (Free creativity)",
-        value: "blank",
-      },
-      {
-        label: "Planner (Stay organized)",
-        value: "planner",
-      },
+      { label: "Lined (Everyday writing)", value: "lined" },
+      { label: "Blank (Free creativity)", value: "blank" },
+      { label: "Planner (Stay organized)", value: "planner" },
     ],
   },
 
@@ -28,18 +27,9 @@ export const notebookFormOptions = [
     type: "select",
     required: true,
     options: [
-      {
-        label: "Full Photo Cover (Upload your own image)",
-        value: "full_photo_cover",
-      },
-      {
-        label: "Photo Frame Cover (Photo with visible border)",
-        value: "photo_frame",
-      },
-      {
-        label: "Minimal Name Cover (Clean name design)",
-        value: "minimal_name_cover",
-      },
+      { label: "Full Photo Cover", value: "full_photo_cover" },
+      { label: "Photo Frame Cover", value: "photo_frame" },
+      { label: "Minimal Name Cover", value: "minimal_name_cover" },
     ],
   },
 
@@ -65,31 +55,26 @@ export const notebookFormOptions = [
   },
 
   {
-    id: "name",
-    title: "Add Your Name",
-    type: "text",
-    required: true,
-    placeholder: "Enter your name (e.g. Sam)",
-  },
-
-  {
     id: "fontSize",
     title: "Adjust Text Size",
-    type: "slider",
+    type: "select",
     required: false,
-    min: 32,
-    max: 100,
-    defaultValue: 64,
+    defaultValue: "medium",
+    options: [
+      { label: "Small", value: "small" },
+      { label: "Medium", value: "medium" },
+      { label: "Large", value: "large" },
+    ],
   },
 ];
 
 export const defaultNotebookSelection = {
+  text: "",
   notebookType: "",
   coverStyle: "",
   coverColor: "#F5EDE3",
   image: null,
-  name: "",
-  fontSize: 64,
+  fontSize: "medium",
   binding: "spiral",
 };
 
@@ -100,15 +85,7 @@ export function getVisibleNotebookFields(formData) {
   });
 }
 
-export function getAutoTextColor(coverStyle, coverColor) {
-  if (coverStyle === "full_photo_cover") {
-    return "#000000";
-  }
-
-  return isColorDark(coverColor) ? "#FFFFFF" : "#000000";
-}
-
-export function generateNotebookConfig(formData) {
+export function generateNotebookConfig(formData = defaultNotebookSelection) {
   const coverStyle = formData.coverStyle;
   const coverColor = formData.coverColor || "#F5EDE3";
 
@@ -119,21 +96,20 @@ export function generateNotebookConfig(formData) {
     binding: "spiral",
 
     coverStyle,
-    coverColor:
-      coverStyle === "full_photo_cover" ? null : coverColor,
+
+    coverColor: coverStyle === "full_photo_cover" ? null : coverColor,
 
     image:
-      coverStyle === "full_photo_cover" ||
-      coverStyle === "photo_frame"
+      coverStyle === "full_photo_cover" || coverStyle === "photo_frame"
         ? formData.image
         : null,
 
-    name: formData.name,
+    customText: formData.text,
 
     text: {
-      value: formData.name,
+      value: formData.text,
       color: getAutoTextColor(coverStyle, coverColor),
-      fontSize: formData.fontSize || 64,
+      fontSize: getFontSizeValue(formData.fontSize),
       fontFamily: "Arial Black, Arial, sans-serif",
       fontWeight: 900,
       position: getDefaultTextPosition(coverStyle),
@@ -150,6 +126,22 @@ export function generateNotebookConfig(formData) {
       roundedCorners: true,
     },
   };
+}
+
+export function getAutoTextColor(coverStyle, coverColor) {
+  if (coverStyle === "full_photo_cover") {
+    return "#000000";
+  }
+
+  return isColorDark(coverColor) ? "#FFFFFF" : "#000000";
+}
+
+function getFontSizeValue(size) {
+  if (size === "small") return 48;
+  if (size === "medium") return 64;
+  if (size === "large") return 82;
+
+  return 64;
 }
 
 function getDefaultTextPosition(coverStyle) {
