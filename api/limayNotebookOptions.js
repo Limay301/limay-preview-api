@@ -1,66 +1,59 @@
-// limayNotebookOptions.js
+// limayNotebookEngine.js
 
-export const notebookProduct = {
-  productId: "limay-notebook-full-photo-lined-spiral",
+export function generateNotebookConfig(selection) {
+  const baseConfig = {
+    productId: "limay-notebook",
+    binding: "spiral",
 
-  productName: "Custom Spiral Notebook",
+    notebookType: selection.notebookType || "lined",
 
-  brand: "Limay Studio",
-
-  notebookType: null, 
-  // ejemplo cuando el cliente seleccione:
-  // "lined", "blank", "planner"
-
-  binding: "spiral",
-  // siempre argollado
-
-  coverStyle: null,
-  // ejemplo:
-  // "full_photo_cover"
-
-  customerName: "",
-
-  uploadedImage: null,
-  // aquí irá la imagen que suba el cliente
-
-  text: {
-    value: "",
-    color: "#000000",
-    fontFamily: "Arial Black, Arial, sans-serif",
-    fontSize: 64,
-    fontWeight: 900,
-
-    position: {
-      x: 50,
-      y: 12,
+    cover: {
+      style: selection.coverStyle || "full_photo_cover",
+      image: selection.image || null,
+      backgroundColor: null,
     },
 
-    allowDrag: true,
-    allowResize: true,
-  },
+    text: {
+      value: selection.name || "",
+      color: "#000000",
+      fontSize: 64,
+      fontWeight: 900,
+      fontFamily: "Arial Black, Arial, sans-serif",
 
-  layoutRules: {
-    imageMustCoverEntireFront: true,
-    noBackgroundColorVisible: true,
-    keepImageProportions: true,
-    textMustBeReadable: true,
-    doNotDistortImage: true,
-    doNotDistortText: true,
-    notebookMustLookPhysical: true,
-  },
+      position: {
+        x: 50,
+        y: 12,
+      },
+    },
 
-  mockupStyle: {
-    background: "soft neutral background",
-    lighting: "warm natural lighting",
-    shadows: "realistic soft shadows",
-    aesthetic: "premium product photography",
-    quality: "ultra realistic 4K",
-  },
+    rules: {},
+  };
 
-  preview: {
-    showSpiralBinding: true,
-    spiralSide: "left",
-    roundedCorners: true,
-    realisticShadow: true,
-  },
-};
+  // 🔥 CONDICIONAL: COVER STYLE
+  if (baseConfig.cover.style === "full_photo_cover") {
+    baseConfig.rules = {
+      imageMustCoverEntireFront: true,
+      noBackgroundVisible: true,
+      allowOverlayText: true,
+    };
+
+    baseConfig.cover.backgroundColor = null;
+  }
+
+  if (baseConfig.cover.style === "color_cover") {
+    baseConfig.rules = {
+      useSolidColor: true,
+      allowText: true,
+    };
+
+    baseConfig.cover.backgroundColor = selection.color || "#ffffff";
+  }
+
+  // 🔥 CONDICIONAL: COLOR DE TEXTO AUTOMÁTICO
+  baseConfig.text.color = getAutoTextColor(
+    baseConfig.cover.image,
+    baseConfig.cover.backgroundColor
+  );
+
+  return baseConfig;
+}
