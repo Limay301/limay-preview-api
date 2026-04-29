@@ -1,111 +1,217 @@
-export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+// limayNotebookOptions.js
 
-  if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Only POST allowed" });
+export const notebookFormOptions = [
+  {
+    id: "notebookType",
+    title: "Choose Your Notebook Style",
+    type: "select",
+    required: true,
+    options: [
+      {
+        label: "Lined (Everyday writing)",
+        value: "lined",
+      },
+      {
+        label: "Blank (Free creativity)",
+        value: "blank",
+      },
+      {
+        label: "Planner (Stay organized)",
+        value: "planner",
+      },
+    ],
+  },
 
-  const {
-    coverStyle,
-    notebookType,
-    coverColor,
-    name,
-    phrase,
-    textPlacement,
-    textBackground
-  } = req.body;
+  {
+    id: "coverStyle",
+    title: "Choose Your Cover Style",
+    type: "select",
+    required: true,
+    options: [
+      {
+        label: "Full Photo Cover (Upload your own image)",
+        value: "full_photo_cover",
+      },
+      {
+        label: "Photo Frame Cover (Photo with visible border)",
+        value: "photo_frame",
+      },
+      {
+        label: "Minimal Name Cover (Clean name design)",
+        value: "minimal_name_cover",
+      },
+    ],
+  },
 
-  const coverStyleMap = {
-    "Full Photo Cover": `
-Cover style: Full Photo Cover.
-The uploaded image must cover the entire notebook front cover.
-No background cover color should be visible.
-The selected coverColor must be used as the text color.
-Place the text in this position: ${textPlacement || "Auto Recommended"}.
-If the photo is visually busy, use this text background option: ${textBackground || "Soft Transparent Overlay"}.
-`,
+  {
+    id: "coverColor",
+    title: "Choose Your Cover Color",
+    type: "color",
+    required: false,
+    defaultValue: "#F5EDE3",
+    condition: (formData) =>
+      formData.coverStyle === "photo_frame" ||
+      formData.coverStyle === "minimal_name_cover",
+  },
 
-    "Photo Frame": `
-Cover style: Photo Frame.
-Use the selected coverColor as the visible notebook background color.
-Place the uploaded photo inside a clean centered frame.
-The photo should not cover the entire notebook.
-Leave visible margins around the frame.
-Automatically choose black or white text based on the best contrast with the coverColor.
-Place the name and phrase below or above the photo frame in a balanced layout.
-`,
+  {
+    id: "image",
+    title: "Upload Your Photo",
+    type: "file",
+    required: true,
+    condition: (formData) =>
+      formData.coverStyle === "full_photo_cover" ||
+      formData.coverStyle === "photo_frame",
+  },
 
-    "Minimal Name Cover": `
-Cover style: Minimal Name Cover.
-Use the selected coverColor as the main notebook background color.
-Use the uploaded photo only as a small subtle accent if provided.
-Do not make the photo the main visual element.
-The main focus must be the name typography.
-Automatically choose black or white text based on the best contrast with the coverColor.
-Keep the design very clean, simple and premium.
-`
-  };
+  {
+    id: "name",
+    title: "Add Your Name",
+    type: "text",
+    required: true,
+    placeholder: "Enter your name (e.g. Sam)",
+  },
 
-  const selectedCoverStyleInstructions = coverStyleMap[coverStyle] || coverStyleMap["Photo Frame"];
+  {
+    id: "fontSize",
+    title: "Adjust Text Size",
+    type: "slider",
+    required: false,
+    min: 32,
+    max: 100,
+    defaultValue: 64,
+  },
+];
 
-  const prompt = `
-Create a realistic premium spiral notebook cover mockup for Limay Studio.
+export const defaultNotebookSelection = {
+  notebookType: "",
+  coverStyle: "",
+  coverColor: "#F5EDE3",
+  image: null,
+  name: "",
+  fontSize: 64,
+  binding: "spiral",
+};
 
-Notebook type: ${notebookType}
-
-Text:
-Name: ${name}
-Phrase: ${phrase || ""}
-
-Image:
-Use the uploaded customer image according to the selected cover style.
-
-Selected cover style instructions:
-${selectedCoverStyleInstructions}
-
-Physical product rules:
-The notebook must be spiral bound.
-Show spiral rings clearly on the left side.
-The notebook must look like a real physical product.
-Keep proportions realistic.
-The design must be printable and physically realistic.
-
-Layout:
-Clean modern notebook cover design.
-Balanced spacing.
-Premium personalized product aesthetic.
-Do not overcrowd the cover.
-
-Lighting and scene:
-Soft neutral background.
-Warm natural lighting.
-Realistic shadows.
-High-end product photography style.
-
-Important:
-The text must be clear and readable.
-Do not distort the uploaded image.
-Do not distort the text.
-Do not misspell the text.
-Do not invent extra words.
-Do not add unrelated decorative elements unless the selected style requires it.
-
-Ultra realistic, premium aesthetic.
-`;
-
-  return res.status(200).json({
-    success: true,
-    message: "Notebook prompt generated successfully",
-    received: {
-      coverStyle,
-      notebookType,
-      coverColor,
-      name,
-      phrase,
-      textPlacement,
-      textBackground
-    },
-    prompt
+export function getVisibleNotebookFields(formData) {
+  return notebookFormOptions.filter((field) => {
+    if (!field.condition) return true;
+    return field.condition(formData);
   });
+}
+
+export function getAutoTextColor(coverStyle, coverColor) {
+  if (coverStyle === "full_photo_cover") {
+    return "#000000";
+  }
+
+  return isColorDark(coverColor) ? "#FFFFFF" : "#000000";
+}
+
+export function generateNotebookConfig(formData) {
+  const coverStyle = formData.coverStyle;
+  const coverColor = formData.coverColor || "#F5EDE3";
+
+  return {
+    brand: "Limay Studio",
+
+    notebookType: formData.notebookType,
+    binding: "spiral",
+
+    coverStyle,
+    coverColor:
+      coverStyle === "full_photo_cover" ? null : coverColor,
+
+    image:
+      coverStyle === "full_photo_cover" ||
+      coverStyle === "photo_frame"
+        ? formData.image
+        : null,
+
+    name: formData.name,
+
+    text: {
+      value: formData.name,
+      color: getAutoTextColor(coverStyle, coverColor),
+      fontSize: formData.fontSize || 64,
+      fontFamily: "Arial Black, Arial, sans-serif",
+      fontWeight: 900,
+      position: getDefaultTextPosition(coverStyle),
+      allowDrag: true,
+      allowResize: true,
+    },
+
+    rules: getNotebookRules(coverStyle),
+
+    preview: {
+      showSpiralBinding: true,
+      spiralSide: "left",
+      realisticShadow: true,
+      roundedCorners: true,
+    },
+  };
+}
+
+function getDefaultTextPosition(coverStyle) {
+  if (coverStyle === "full_photo_cover") {
+    return { x: 50, y: 12 };
+  }
+
+  if (coverStyle === "photo_frame") {
+    return { x: 50, y: 88 };
+  }
+
+  if (coverStyle === "minimal_name_cover") {
+    return { x: 50, y: 50 };
+  }
+
+  return { x: 50, y: 50 };
+}
+
+function getNotebookRules(coverStyle) {
+  if (coverStyle === "full_photo_cover") {
+    return {
+      imageMustCoverEntireFront: true,
+      noBackgroundColorVisible: true,
+      coverColorActsAsTextColor: true,
+      textMustBeReadable: true,
+      doNotDistortImage: true,
+      doNotDistortText: true,
+    };
+  }
+
+  if (coverStyle === "photo_frame") {
+    return {
+      imageInsideFrame: true,
+      coverColorVisible: true,
+      autoTextColorByCoverColor: true,
+      textMustBeReadable: true,
+      doNotDistortImage: true,
+      doNotDistortText: true,
+    };
+  }
+
+  if (coverStyle === "minimal_name_cover") {
+    return {
+      noPhotoRequired: true,
+      coverColorVisible: true,
+      autoTextColorByCoverColor: true,
+      textMustBeReadable: true,
+      doNotDistortText: true,
+    };
+  }
+
+  return {};
+}
+
+function isColorDark(hexColor = "#FFFFFF") {
+  const hex = hexColor.replace("#", "");
+
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+  return luminance < 150;
 }
